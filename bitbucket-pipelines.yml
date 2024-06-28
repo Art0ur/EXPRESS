@@ -1,0 +1,48 @@
+image: node:14
+
+pipelines:
+  default:
+    - step:
+        name: Build and Deploy
+        caches:
+          - node
+        script:
+          - git pull
+          - docker system prune -af
+          - docker build -t api_iot_backend_express .
+          - docker run -d -p 3000:3000 -v $(pwd)/config:/app/config api_iot_backend_express
+        services:
+          - docker
+
+    - step:
+        name: Notify
+        script:
+          - apt-get update
+          - apt-get install -y msmtp
+          - echo "account default" > ~/.msmtprc
+          - echo "host smtp.gmail.com" >> ~/.msmtprc
+          - echo "port 587" >> ~/.msmtprc
+          - echo "auth on" >> ~/.msmtprc
+          - echo "user brocooliis@gmail.com" >> ~/.msmtprc
+          - echo "password zhojndqigojxyjmi" >> ~/.msmtprc
+          - echo "tls on" >> ~/.msmtprc
+          - echo "tls_starttls on" >> ~/.msmtprc
+          - echo "tls_trust_file /etc/ssl/certs/ca-certificates.crt" >> ~/.msmtprc
+          - echo "from brocooliis@gmail.com" >> ~/.msmtprc
+          - echo "logfile ~/.msmtp.log" >> ~/.msmtprc
+          - chmod 600 ~/.msmtprc
+          - echo "API_IOT_BACKEND_EXPRESS build and deployment completed" | msmtp -a default brocooliis@gmail.com
+
+  schedules:
+    - cron: "0 0 * * *"
+      step:
+        name: Scheduled Build and Deploy
+        caches:
+          - node
+        script:
+          - git pull
+          - docker system prune -af
+          - docker build -t api_iot_backend_express .
+          - docker run -d -p 3000:3000 -v $(pwd)/config:/app/config api_iot_backend_express
+        services:
+          - docker
